@@ -55,6 +55,18 @@ cargo build --release
 ./target/release/chatgpt-voice-mcp doctor
 ```
 
+Tagged releases publish a Linux x86_64 archive with a SHA-256 sidecar. Download
+the latest archive from [GitHub Releases](https://github.com/AntonIXO/chatgpt-voice-mcp/releases), verify it, and put the binary on your `PATH`:
+
+```bash
+tar -xzf chatgpt-voice-mcp-<version>-linux-x86_64.tar.gz
+sha256sum -c chatgpt-voice-mcp-<version>-linux-x86_64.tar.gz.sha256
+install -Dm755 chatgpt-voice-mcp-<version>-linux-x86_64/chatgpt-voice-mcp ~/.local/bin/chatgpt-voice-mcp
+```
+
+Pushing a tag matching `v*` runs the release workflow. It repeats formatting,
+tests, Clippy, and a locked release build before publishing the archive.
+
 By default credentials are stored under:
 
 ```text

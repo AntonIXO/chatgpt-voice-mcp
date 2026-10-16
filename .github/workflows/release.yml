@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package Linux x86_64
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install native dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libasound2-dev pkg-config
+
+      - name: Verify source
+        run: |
+          cargo fmt --all -- --check
+          cargo test --locked
+          cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Assemble release archive
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          package="chatgpt-voice-mcp-${version}-linux-x86_64"
+          mkdir -p dist/"$package"
+          install -m 0755 target/release/chatgpt-voice-mcp dist/"$package"/chatgpt-voice-mcp
+          install -m 0644 README.md LICENSE SECURITY.md dist/"$package"/
+          tar -C dist -czf "dist/${package}.tar.gz" "$package"
+          sha256sum "dist/${package}.tar.gz" > "dist/${package}.tar.gz.sha256"
+          rm -rf "dist/$package"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: dist
+
+      - name: Create release and upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
