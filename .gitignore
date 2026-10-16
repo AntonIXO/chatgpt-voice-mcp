@@ -1,0 +1,8 @@
+/target/
+.DS_Store
+*.wav
+*.raw
+.env
+.env.*
+# Local isolated Codex authentication and runtime state
+.codex-home/
